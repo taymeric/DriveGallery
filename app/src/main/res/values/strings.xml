@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Drive Gallery</string>
+    <string name="create_folder">Create folder</string>
+    <string name="create_second_folder">Create folder in folder</string>s
+    <string name="pick_folder">Pick folder</string>
+    <string name="display_files">Display files</string>
 </resources>
