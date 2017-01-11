@@ -1,5 +1,6 @@
 package com.example.android.drivegallery;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
 import android.support.annotation.NonNull;
@@ -19,10 +20,19 @@ import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.drive.Drive;
 import com.google.android.gms.drive.DriveApi;
+import com.google.android.gms.drive.DriveContents;
+import com.google.android.gms.drive.DriveFile;
 import com.google.android.gms.drive.DriveFolder;
 import com.google.android.gms.drive.DriveId;
 import com.google.android.gms.drive.MetadataChangeSet;
 import com.google.android.gms.drive.OpenFileActivityBuilder;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 
 import static android.R.attr.data;
 import static android.R.id.message;
@@ -39,9 +49,14 @@ public class MainActivity extends AppCompatActivity implements
     protected static final int REQUEST_CODE_RESOLUTION = 1;
 
     /**
-     * Request code for opener
+     * Request code for folder picker
      */
-    private static final int REQUEST_CODE_OPENER = 2;
+    private static final int REQUEST_CODE_FOLDER_OPENER = 2;
+
+    /**
+     * Request code for file picker
+     */
+    private static final int REQUEST_CODE_FILE_OPENER = 3;
 
     /**
      * Google API client.
@@ -53,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private DriveFolder workFolder;
     private DriveFolder pickedFolder;
+    private DriveId fileId;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -135,7 +151,7 @@ public class MainActivity extends AppCompatActivity implements
 
     final ResultCallback<DriveFolder.DriveFolderResult> callback = new ResultCallback<DriveFolder.DriveFolderResult>() {
         @Override
-        public void onResult(DriveFolder.DriveFolderResult result) {
+        public void onResult(@NonNull DriveFolder.DriveFolderResult result) {
             if (!result.getStatus().isSuccess()) {
                 showMessage("Error while trying to create the folder");
                 return;
@@ -147,6 +163,61 @@ public class MainActivity extends AppCompatActivity implements
         }
     };
 
+    public void createFile(View view) {
+        Drive.DriveApi.newDriveContents(getGoogleApiClient())
+                .setResultCallback(driveContentsCallback);
+    }
+
+    final private ResultCallback<DriveApi.DriveContentsResult> driveContentsCallback = new
+            ResultCallback<DriveApi.DriveContentsResult>() {
+                @Override
+                public void onResult(@NonNull DriveApi.DriveContentsResult result) {
+                    if (!result.getStatus().isSuccess()) {
+                        showMessage("Error while trying to create new file contents");
+                        return;
+                    }
+                    final DriveContents driveContents = result.getDriveContents();
+
+                    // Perform I/O off the UI thread.
+                    new Thread() {
+                        @Override
+                        public void run() {
+                            // write content to DriveContents
+                            OutputStream outputStream = driveContents.getOutputStream();
+                            Writer writer = new OutputStreamWriter(outputStream);
+                            try {
+                                writer.write("Hello World!");
+                                writer.close();
+                            } catch (IOException e) {
+                                Log.e(TAG, e.getMessage());
+                            }
+
+                            MetadataChangeSet changeSet = new MetadataChangeSet.Builder()
+                                    .setTitle("New file")
+                                    .setMimeType("text/plain")
+                                    .setStarred(true).build();
+
+                            // create a file on root folder
+                            Drive.DriveApi.getRootFolder(getGoogleApiClient())
+                                    .createFile(getGoogleApiClient(), changeSet, driveContents)
+                                    .setResultCallback(fileCallback);
+                        }
+                    }.start();
+                }
+            };
+
+    final private ResultCallback<DriveFolder.DriveFileResult> fileCallback = new
+            ResultCallback<DriveFolder.DriveFileResult>() {
+                @Override
+                public void onResult(@NonNull DriveFolder.DriveFileResult result) {
+                    if (!result.getStatus().isSuccess()) {
+                        showMessage("Error while trying to create the file");
+                        return;
+                    }
+                    showMessage("Created a file with content: " + result.getDriveFile().getDriveId());
+                }
+            };
+
     public void pickFolder(View view) {
         IntentSender intentSender = Drive.DriveApi
                 .newOpenFileActivityBuilder()
@@ -154,7 +225,20 @@ public class MainActivity extends AppCompatActivity implements
                 .build(getGoogleApiClient());
         try {
             startIntentSenderForResult(
-                    intentSender, REQUEST_CODE_OPENER, null, 0, 0, 0);
+                    intentSender, REQUEST_CODE_FOLDER_OPENER, null, 0, 0, 0);
+        } catch (IntentSender.SendIntentException e) {
+            Log.w(TAG, "Unable to send intent", e);
+        }
+    }
+
+    public void pickFile(View view) {
+        IntentSender intentSender = Drive.DriveApi
+                .newOpenFileActivityBuilder()
+                .setMimeType(new String[] { "text/plain", "text/html" })
+                .build(getGoogleApiClient());
+        try {
+            startIntentSenderForResult(
+                    intentSender, REQUEST_CODE_FILE_OPENER, null, 0, 0, 0);
         } catch (IntentSender.SendIntentException e) {
             Log.w(TAG, "Unable to send intent", e);
         }
@@ -162,36 +246,14 @@ public class MainActivity extends AppCompatActivity implements
 
     public void displayFiles(View view) {
         if (pickedFolder != null) {
-            /*MetadataChangeSet changeSet = new MetadataChangeSet.Builder()
-                    .setTitle("New folder in a folder 2").build();
-            pickedFolder.createFolder(
-                    getGoogleApiClient(), changeSet).setResultCallback(callback);*/
-
             pickedFolder.listChildren(getGoogleApiClient()).setResultCallback(childrenRetrievedCallback);
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        switch(requestCode) {
-            case REQUEST_CODE_OPENER:
-                if (resultCode == RESULT_OK) {
-                    DriveId driveId = data.getParcelableExtra(
-                            OpenFileActivityBuilder.EXTRA_RESPONSE_DRIVE_ID);
-                    showMessage("Selected folder's ID: " + driveId);
-                    pickedFolder = driveId.asDriveFolder();
-                }
-                break;
-            default:
-                super.onActivityResult(requestCode, resultCode, data);
-                break;
         }
     }
 
     ResultCallback<DriveApi.MetadataBufferResult> childrenRetrievedCallback = new
             ResultCallback<DriveApi.MetadataBufferResult>() {
                 @Override
-                public void onResult(DriveApi.MetadataBufferResult result) {
+                public void onResult(@NonNull DriveApi.MetadataBufferResult result) {
                     if (!result.getStatus().isSuccess()) {
                         showMessage("Problem while retrieving files");
                         return;
@@ -201,6 +263,93 @@ public class MainActivity extends AppCompatActivity implements
                     showMessage("Successfully listed files.");
                 }
             };
+
+    public void displayFile(View view) {
+        if (fileId != null) {
+            Drive.DriveApi.fetchDriveId(getGoogleApiClient(), fileId.getResourceId())
+                    .setResultCallback(idCallback);
+        }
+    }
+
+    final private ResultCallback<DriveApi.DriveIdResult> idCallback = new ResultCallback<DriveApi.DriveIdResult>() {
+        @Override
+        public void onResult(@NonNull DriveApi.DriveIdResult result) {
+            new RetrieveDriveFileContentsAsyncTask(
+                    getApplicationContext()).execute(result.getDriveId());
+        }
+    };
+
+
+    final private class RetrieveDriveFileContentsAsyncTask
+            extends ApiClientAsyncTask<DriveId, Boolean, String> {
+
+        protected RetrieveDriveFileContentsAsyncTask(Context context) {
+            super(context);
+        }
+
+        @Override
+        protected String doInBackgroundConnected(DriveId... params) {
+            String contents = null;
+            /*DriveFile file = params[0].asDriveFile();
+            DriveApi.DriveContentsResult driveContentsResult =
+                    file.open(getGoogleApiClient(), DriveFile.MODE_READ_ONLY, null).await();
+            if (!driveContentsResult.getStatus().isSuccess()) {
+                return null;
+            }
+            DriveContents driveContents = driveContentsResult.getDriveContents();
+            BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(driveContents.getInputStream()));
+            StringBuilder builder = new StringBuilder();
+            String line;
+            try {
+                while ((line = reader.readLine()) != null) {
+                    builder.append(line);
+                }
+                contents = builder.toString();
+            } catch (IOException e) {
+                Log.e(TAG, "IOException while reading from the stream", e);
+            }
+
+            driveContents.discard(getGoogleApiClient());*/
+            showMessage("doInBackground");
+            return contents;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
+            if (result == null) {
+                showMessage("Error while reading from the file");
+                return;
+            }
+            showMessage("File contents: " + result);
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        switch(requestCode) {
+            case REQUEST_CODE_FOLDER_OPENER:
+                if (resultCode == RESULT_OK) {
+                    DriveId driveId = data.getParcelableExtra(
+                            OpenFileActivityBuilder.EXTRA_RESPONSE_DRIVE_ID);
+                    showMessage("Selected folder's ID: " + driveId);
+                    pickedFolder = driveId.asDriveFolder();
+                }
+                break;
+            case REQUEST_CODE_FILE_OPENER:
+                if (resultCode == RESULT_OK) {
+                    DriveId driveId = data.getParcelableExtra(
+                            OpenFileActivityBuilder.EXTRA_RESPONSE_DRIVE_ID);
+                    showMessage("Selected folder's ID: " + driveId);
+                    fileId = driveId;
+                }
+                break;
+            default:
+                super.onActivityResult(requestCode, resultCode, data);
+                break;
+        }
+    }
 
     /**
      * Shows a toast message.

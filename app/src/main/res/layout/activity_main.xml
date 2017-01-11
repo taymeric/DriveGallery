@@ -22,8 +22,20 @@
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:onClick="createFile"
+        android:text="@string/create_file"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:onClick="pickFolder"
         android:text="@string/pick_folder"/>
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="pickFile"
+        android:text="@string/pick_file"/>
 
     <Button
         android:layout_width="wrap_content"
@@ -31,8 +43,20 @@
         android:onClick="displayFiles"
         android:text="@string/display_files"/>
 
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:onClick="displayFile"
+        android:text="@string/display_file"/>
+
+    <ImageView
+        android:id="@+id/image"
+        android:layout_width="150dp"
+        android:layout_height="150dp" />
+
     <ListView
         android:id="@+id/list_content"
         android:layout_width="match_parent"
         android:layout_height="wrap_content" />
+
 </LinearLayout>
