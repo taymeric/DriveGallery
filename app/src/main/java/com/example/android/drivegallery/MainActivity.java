@@ -273,12 +273,12 @@ public class MainActivity extends AppCompatActivity implements
 
     final private ResultCallback<DriveApi.DriveIdResult> idCallback = new ResultCallback<DriveApi.DriveIdResult>() {
         @Override
+
         public void onResult(@NonNull DriveApi.DriveIdResult result) {
             new RetrieveDriveFileContentsAsyncTask(
                     getApplicationContext()).execute(result.getDriveId());
         }
     };
-
 
     final private class RetrieveDriveFileContentsAsyncTask
             extends ApiClientAsyncTask<DriveId, Boolean, String> {
@@ -290,7 +290,7 @@ public class MainActivity extends AppCompatActivity implements
         @Override
         protected String doInBackgroundConnected(DriveId... params) {
             String contents = null;
-            /*DriveFile file = params[0].asDriveFile();
+            DriveFile file = params[0].asDriveFile();
             DriveApi.DriveContentsResult driveContentsResult =
                     file.open(getGoogleApiClient(), DriveFile.MODE_READ_ONLY, null).await();
             if (!driveContentsResult.getStatus().isSuccess()) {
@@ -310,8 +310,7 @@ public class MainActivity extends AppCompatActivity implements
                 Log.e(TAG, "IOException while reading from the stream", e);
             }
 
-            driveContents.discard(getGoogleApiClient());*/
-            showMessage("doInBackground");
+            driveContents.discard(getGoogleApiClient());
             return contents;
         }
 
