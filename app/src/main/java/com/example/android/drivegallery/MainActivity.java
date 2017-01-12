@@ -3,12 +3,15 @@ package com.example.android.drivegallery;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentSender;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -69,6 +72,8 @@ public class MainActivity extends AppCompatActivity implements
     private DriveFolder workFolder;
     private DriveFolder pickedFolder;
     private DriveId fileId;
+
+    private Bitmap image;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -234,7 +239,7 @@ public class MainActivity extends AppCompatActivity implements
     public void pickFile(View view) {
         IntentSender intentSender = Drive.DriveApi
                 .newOpenFileActivityBuilder()
-                .setMimeType(new String[] { "text/plain", "text/html" })
+                .setMimeType(new String[] { "image/jpeg" })
                 .build(getGoogleApiClient());
         try {
             startIntentSenderForResult(
@@ -281,15 +286,15 @@ public class MainActivity extends AppCompatActivity implements
     };
 
     final private class RetrieveDriveFileContentsAsyncTask
-            extends ApiClientAsyncTask<DriveId, Boolean, String> {
+            extends ApiClientAsyncTask<DriveId, Boolean, Bitmap> {
 
         protected RetrieveDriveFileContentsAsyncTask(Context context) {
             super(context);
         }
 
         @Override
-        protected String doInBackgroundConnected(DriveId... params) {
-            String contents = null;
+        protected Bitmap doInBackgroundConnected(DriveId... params) {
+
             DriveFile file = params[0].asDriveFile();
             DriveApi.DriveContentsResult driveContentsResult =
                     file.open(getGoogleApiClient(), DriveFile.MODE_READ_ONLY, null).await();
@@ -297,31 +302,25 @@ public class MainActivity extends AppCompatActivity implements
                 return null;
             }
             DriveContents driveContents = driveContentsResult.getDriveContents();
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(driveContents.getInputStream()));
-            StringBuilder builder = new StringBuilder();
-            String line;
-            try {
-                while ((line = reader.readLine()) != null) {
-                    builder.append(line);
-                }
-                contents = builder.toString();
-            } catch (IOException e) {
-                Log.e(TAG, "IOException while reading from the stream", e);
-            }
+
+            Bitmap contents = BitmapFactory.decodeStream(driveContents.getInputStream());
 
             driveContents.discard(getGoogleApiClient());
+
             return contents;
         }
 
         @Override
-        protected void onPostExecute(String result) {
+        protected void onPostExecute(Bitmap result) {
             super.onPostExecute(result);
             if (result == null) {
                 showMessage("Error while reading from the file");
                 return;
             }
-            showMessage("File contents: " + result);
+            //showMessage("File contents: " + result);
+            ImageView imageView = (ImageView) findViewById(R.id.image);
+            image = result;
+            imageView.setImageBitmap(image);
         }
     }
 
