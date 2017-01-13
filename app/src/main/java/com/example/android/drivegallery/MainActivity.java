@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.IntentSender;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
@@ -82,6 +83,16 @@ public class MainActivity extends AppCompatActivity implements
         mResultsListView = (ListView) findViewById(R.id.list_content);
         mResultsAdapter = new ResultsAdapter(this);
         mResultsListView.setAdapter(mResultsAdapter);
+
+        ImageView image = (ImageView) findViewById(R.id.image);
+        image.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Uri url = Uri.parse("http://www.amazon.ca");
+                Intent intent = new Intent(Intent.ACTION_VIEW, url);
+                startActivity(intent);
+            }
+        });
     }
 
     /**
