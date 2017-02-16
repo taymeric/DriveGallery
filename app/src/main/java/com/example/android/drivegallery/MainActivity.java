@@ -28,6 +28,7 @@ import com.google.android.gms.drive.DriveContents;
 import com.google.android.gms.drive.DriveFile;
 import com.google.android.gms.drive.DriveFolder;
 import com.google.android.gms.drive.DriveId;
+import com.google.android.gms.drive.DriveResource;
 import com.google.android.gms.drive.MetadataChangeSet;
 import com.google.android.gms.drive.OpenFileActivityBuilder;
 
@@ -71,8 +72,7 @@ public class MainActivity extends AppCompatActivity implements
     private ResultsAdapter mResultsAdapter;
 
     private DriveFolder workFolder;
-    private DriveFolder pickedFolder;
-    private DriveId fileId;
+    private DriveId imageId;
 
     private Bitmap image;
 
@@ -88,7 +88,11 @@ public class MainActivity extends AppCompatActivity implements
         image.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Uri url = Uri.parse("http://www.amazon.ca");
+                Uri url;
+                if (imageId != null)
+                    url = Uri.parse("http://drive.google.com/open?id=" + imageId.getResourceId());
+                else
+                    url = Uri.parse("http://drive.google.com/");
                 Intent intent = new Intent(Intent.ACTION_VIEW, url);
                 startActivity(intent);
             }
@@ -150,35 +154,37 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
+
+    /**
+     * Called when 'Create Folder' button is clicked
+     * Creates a folder in the currently selected folder or the root folder by default
+     * @param view
+     */
     public void createFolder(View view) {
+        if (workFolder == null) workFolder = Drive.DriveApi.getRootFolder(getGoogleApiClient());
+
         MetadataChangeSet changeSet = new MetadataChangeSet.Builder()
-                .setTitle("New folder").build();
-        Drive.DriveApi.getRootFolder(getGoogleApiClient()).createFolder(
-                getGoogleApiClient(), changeSet).setResultCallback(callback);
+                    .setTitle("New folder").build();
+        workFolder.createFolder(getGoogleApiClient(), changeSet).setResultCallback(callback);
     }
 
-    public void createFolderInFolder(View view) {
-        if (workFolder != null) {
-            MetadataChangeSet changeSet = new MetadataChangeSet.Builder()
-                    .setTitle("New folder in a folder").build();
-            workFolder.createFolder(getGoogleApiClient(), changeSet).setResultCallback(callback);
-        }
-    }
-
-    final ResultCallback<DriveFolder.DriveFolderResult> callback = new ResultCallback<DriveFolder.DriveFolderResult>() {
+    final private ResultCallback<DriveFolder.DriveFolderResult> callback = new ResultCallback<DriveFolder.DriveFolderResult>() {
         @Override
         public void onResult(@NonNull DriveFolder.DriveFolderResult result) {
             if (!result.getStatus().isSuccess()) {
                 showMessage("Error while trying to create the folder");
                 return;
             }
-
-            if (workFolder == null) workFolder = result.getDriveFolder();
-
-            showMessage("Created a folder: " + result.getDriveFolder().getDriveId());
+            workFolder = result.getDriveFolder();
+            showMessage("Created a folder: " + workFolder.getDriveId());
         }
     };
 
+    /**
+     * Called when 'Create File' Button is clicked
+     * Creates a text file containing the message 'Hello World!' in the current folder
+     * @param view
+     */
     public void createFile(View view) {
         Drive.DriveApi.newDriveContents(getGoogleApiClient())
                 .setResultCallback(driveContentsCallback);
@@ -213,9 +219,11 @@ public class MainActivity extends AppCompatActivity implements
                                     .setMimeType("text/plain")
                                     .setStarred(true).build();
 
-                            // create a file on root folder
-                            Drive.DriveApi.getRootFolder(getGoogleApiClient())
-                                    .createFile(getGoogleApiClient(), changeSet, driveContents)
+                            // create a file on current folder
+                            if (workFolder == null)
+                                workFolder = Drive.DriveApi.getRootFolder(getGoogleApiClient());
+
+                            workFolder.createFile(getGoogleApiClient(), changeSet, driveContents)
                                     .setResultCallback(fileCallback);
                         }
                     }.start();
@@ -234,6 +242,12 @@ public class MainActivity extends AppCompatActivity implements
                 }
             };
 
+
+    /**
+     * Called when 'Pick Folder' button is clicked
+     * Shows the Picker UI for a folder
+     * @param view
+     */
     public void pickFolder(View view) {
         IntentSender intentSender = Drive.DriveApi
                 .newOpenFileActivityBuilder()
@@ -247,26 +261,18 @@ public class MainActivity extends AppCompatActivity implements
         }
     }
 
-    public void pickFile(View view) {
-        IntentSender intentSender = Drive.DriveApi
-                .newOpenFileActivityBuilder()
-                .setMimeType(new String[] { "image/jpeg" })
-                .build(getGoogleApiClient());
-        try {
-            startIntentSenderForResult(
-                    intentSender, REQUEST_CODE_FILE_OPENER, null, 0, 0, 0);
-        } catch (IntentSender.SendIntentException e) {
-            Log.w(TAG, "Unable to send intent", e);
-        }
-    }
-
+    /**
+     * Called when 'Display Files' is clicked
+     * Displays files for the current folder in list
+     * @param view
+     */
     public void displayFiles(View view) {
-        if (pickedFolder != null) {
-            pickedFolder.listChildren(getGoogleApiClient()).setResultCallback(childrenRetrievedCallback);
-        }
+        if (workFolder == null)
+            workFolder = Drive.DriveApi.getRootFolder(getGoogleApiClient());
+        workFolder.listChildren(getGoogleApiClient()).setResultCallback(childrenRetrievedCallback);
     }
 
-    ResultCallback<DriveApi.MetadataBufferResult> childrenRetrievedCallback = new
+    final private ResultCallback<DriveApi.MetadataBufferResult> childrenRetrievedCallback = new
             ResultCallback<DriveApi.MetadataBufferResult>() {
                 @Override
                 public void onResult(@NonNull DriveApi.MetadataBufferResult result) {
@@ -280,9 +286,33 @@ public class MainActivity extends AppCompatActivity implements
                 }
             };
 
-    public void displayFile(View view) {
-        if (fileId != null) {
-            Drive.DriveApi.fetchDriveId(getGoogleApiClient(), fileId.getResourceId())
+    /**
+     * Called when 'Pick Image' button is clicked
+     * Shows the Picker UI for an image
+     * @param view
+     *
+     */
+    public void pickImage(View view) {
+        IntentSender intentSender = Drive.DriveApi
+                .newOpenFileActivityBuilder()
+                .setMimeType(new String[] { "image/jpeg" })
+                .build(getGoogleApiClient());
+        try {
+            startIntentSenderForResult(
+                    intentSender, REQUEST_CODE_FILE_OPENER, null, 0, 0, 0);
+        } catch (IntentSender.SendIntentException e) {
+            Log.w(TAG, "Unable to send intent", e);
+        }
+    }
+
+    /**
+     * Called when 'Display Image' button is clicked
+     * Displays the selected image in the main window
+     * @param view
+     */
+    public void displayImage(View view) {
+        if (imageId != null) {
+            Drive.DriveApi.fetchDriveId(getGoogleApiClient(), imageId.getResourceId())
                     .setResultCallback(idCallback);
         }
     }
@@ -343,7 +373,7 @@ public class MainActivity extends AppCompatActivity implements
                     DriveId driveId = data.getParcelableExtra(
                             OpenFileActivityBuilder.EXTRA_RESPONSE_DRIVE_ID);
                     showMessage("Selected folder's ID: " + driveId);
-                    pickedFolder = driveId.asDriveFolder();
+                    workFolder = driveId.asDriveFolder();
                 }
                 break;
             case REQUEST_CODE_FILE_OPENER:
@@ -351,7 +381,7 @@ public class MainActivity extends AppCompatActivity implements
                     DriveId driveId = data.getParcelableExtra(
                             OpenFileActivityBuilder.EXTRA_RESPONSE_DRIVE_ID);
                     showMessage("Selected folder's ID: " + driveId);
-                    fileId = driveId;
+                    imageId = driveId;
                 }
                 break;
             default:

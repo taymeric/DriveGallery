@@ -8,74 +8,76 @@
     <LinearLayout
         android:id="@+id/activity_main"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            style="?android:attr/buttonBarButtonStyle">
             <Button
                 android:id="@+id/bouton1"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:onClick="createFolder"
-                android:text="@string/create_folder"/>
-
-            <Button
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:onClick="createFolderInFolder"
-                android:text="@string/create_second_folder"/>
+                android:text="@string/create_folder"
+                style="?android:attr/buttonBarButtonStyle"/>
 
             <Button
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:onClick="createFile"
-                android:text="@string/create_file"/>
+                android:text="@string/create_file"
+                style="?android:attr/buttonBarButtonStyle"/>
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            style="?android:attr/buttonBarButtonStyle">
 
             <Button
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:onClick="pickFolder"
-                android:text="@string/pick_folder"/>
+                android:text="@string/pick_folder"
+                style="?android:attr/buttonBarButtonStyle"/>
 
             <Button
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:onClick="displayFiles"
-                android:text="@string/display_files"/>
+                android:text="@string/display_files"
+                style="?android:attr/buttonBarButtonStyle"/>
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            style="?android:attr/buttonBarButtonStyle">
             <Button
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:onClick="pickFile"
-                android:text="@string/pick_file"/>
+                android:onClick="pickImage"
+                android:text="@string/pick_image"
+                style="?android:attr/buttonBarButtonStyle"/>
 
 
             <Button
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:onClick="displayFile"
-                android:text="@string/display_file"/>
+                android:onClick="displayImage"
+                android:text="@string/display_image"
+                style="?android:attr/buttonBarButtonStyle"/>
         </LinearLayout>
 
 

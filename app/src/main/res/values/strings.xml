@@ -4,7 +4,7 @@
     <string name="create_second_folder">New folder in folder</string>
     <string name="create_file">New File</string>
     <string name="pick_folder">Pick folder</string>
-    <string name="pick_file">Pick image</string>
+    <string name="pick_image">Pick image</string>
     <string name="display_files">Display files in folder</string>
-    <string name="display_file">Display image</string>
+    <string name="display_image">Display image</string>
 </resources>
