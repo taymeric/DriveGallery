@@ -1,5 +1,5 @@
 # DriveGallery
-This abandonned Android app project was based around the [Google Drive Android API](https://developers.google.com/drive/android/).
+This abandoned Android app project was based around the [Google Drive Android API](https://developers.google.com/drive/android/).
 
 The API allows access to a user's Google Drive files and folder. However there is a significant constraint to this access:
 
